@@ -34,3 +34,8 @@ app.use("/order", orderRouter);
 app.listen(port, async () => {
   await connectDatabase();
 });
+
+app.get("/", (req, res) => {
+  res.send("Welcome to the API!");
+});
+
