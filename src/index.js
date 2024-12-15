@@ -14,9 +14,17 @@ dotenv.config();
 
 const app = express();
 const port = 3000;
-app.use(cors());
-app.use(express.json());
+// CORS configuration
+const corsOptions = {
+  origin: "https://finedine-dashboard.vercel.app",  // Allow only your frontend domain
+  methods: "GET, POST, PUT, DELETE",                // Allow specific HTTP methods
+  allowedHeaders: "Content-Type, Authorization",    // Allow specific headers
+  credentials: true,                                // Allow cookies/credentials
+};
 
+// Use CORS middleware with the updated configuration
+app.use(cors(corsOptions));
+app.use(express.json());
 
 app.use("/user", userRouter);
 app.use("/menu", menuRouter);
