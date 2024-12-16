@@ -19,6 +19,21 @@ app.use(express.json());
 
 
 
+
+
+// endpoints
+app.use("/user", userRouter);
+app.use("/menu", menuRouter);
+app.use("/venue", venueRouter);
+app.use("/table", tableRouter);
+app.use("/modifier", modifierRouter);
+app.use("/order", orderRouter);
+
+// Start server and connect to MongoDB
+app.listen(port, async () => {
+  await connectDatabase();
+});
+
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");
 });
@@ -37,17 +52,4 @@ app.get("/test", async (req, res) => {
       .status(500)
       .json({ message: "Error fetching users", error: error.message });
   }
-});
-
-// endpoints
-app.use("/user", userRouter);
-app.use("/menu", menuRouter);
-app.use("/venue", venueRouter);
-app.use("/table", tableRouter);
-app.use("/modifier", modifierRouter);
-app.use("/order", orderRouter);
-
-// Start server and connect to MongoDB
-app.listen(port, async () => {
-  await connectDatabase();
 });
