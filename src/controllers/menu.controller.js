@@ -69,21 +69,22 @@ const updateMenu = async (req, res) => {
   //get required data from body and menuId from params
   const { menuName, isActive } = req.body;
   const { menuId } = req.params;
+  console.log(isActive);
 
   if (!menuId) {
     return res.status(400).json({ message: "menuId is required" });
   }
 
-  if (!menuName && !isActive) {
+  if (menuName === undefined && isActive === undefined) {
     return res
       .status(400)
-      .json({ message: "menuName or isActive is required" });
+      .json({ message: "At least one of menuName or isActive is required" });
   }
-
   try {
     const updateData = {};
-    if (menuName) updateData.menuName = menuName;
-    if (isActive) updateData.isActive = isActive;
+    if (menuName !== undefined) updateData.menuName = menuName;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
     // find the menu id and replace with new data
     const updatedMenu = await Menu.findOneAndUpdate(
       { _id: menuId },
@@ -280,7 +281,7 @@ const createMenuWithItemsSections = async (req, res) => {
 
     const section1Items = [
       {
-        isActive: false,
+        isActive: true,
         itemName: "Butternut Squash Soup",
         type: "ITEM",
         image: "",
@@ -299,7 +300,7 @@ const createMenuWithItemsSections = async (req, res) => {
         position: 1,
       },
       {
-        isActive: false,
+        isActive: true,
         itemName: "Gazpacho",
         type: "ITEM",
         image: "",
@@ -320,7 +321,7 @@ const createMenuWithItemsSections = async (req, res) => {
     ];
     const section2Items = [
       {
-        isActive: false,
+        isActive: true,
         itemName: "Chef's Special Salad ",
         type: "ITEM",
         image: "",
@@ -338,7 +339,7 @@ const createMenuWithItemsSections = async (req, res) => {
         position: 1,
       },
       {
-        isActive: false,
+        isActive: true,
         itemName: "Crunchy Spinach Salad",
         type: "ITEM",
         image: "",
@@ -359,7 +360,7 @@ const createMenuWithItemsSections = async (req, res) => {
     ];
     const section3Items = [
       {
-        isActive: false,
+        isActive: true,
         itemName: "Lemon Cheesecake",
         type: "ITEM",
         image: "",
@@ -378,7 +379,7 @@ const createMenuWithItemsSections = async (req, res) => {
         position: 1,
       },
       {
-        isActive: false,
+        isActive: true,
         itemName: "Cinnamon Cheesecake",
         type: "ITEM",
         image: "",
@@ -530,13 +531,22 @@ const addMenuItem = async (req, res) => {
   try {
     const userId = req.user?._id;
 
-    const { itemName, venueId, parentId, price, description,modifiers,lables,isSold } = req.body;
+    const {
+      itemName,
+      venueId,
+      parentId,
+      price,
+      description,
+      modifiers,
+      lables,
+      isSold,
+    } = req.body;
     const { menuId } = req.params;
 
     const parsedPrice = typeof price === "string" ? JSON.parse(price) : price;
-    const parsedModifiers = typeof price === "string" ? JSON.parse(modifiers) : modifiers;
+    const parsedModifiers =
+      typeof price === "string" ? JSON.parse(modifiers) : modifiers;
 
-  
     const itemImage = req.file;
 
     console.log(itemImage);
@@ -551,7 +561,11 @@ const addMenuItem = async (req, res) => {
       return res.status(400).json({ message: "veneu _id is required" });
     }
 
-    if (!parsedPrice ||!Array.isArray(parsedPrice) || parsedPrice.length === 0 ) {
+    if (
+      !parsedPrice ||
+      !Array.isArray(parsedPrice) ||
+      parsedPrice.length === 0
+    ) {
       return res
         .status(400)
         .json({ message: "Price should be a non-empty array." });
@@ -569,12 +583,12 @@ const addMenuItem = async (req, res) => {
       parentId: parentId,
       menuId: menuId,
       userId: userId,
-      price: parsedPrice, 
+      price: parsedPrice,
       image: imageUrl,
       description,
-      modifiers:parsedModifiers,
+      modifiers: parsedModifiers,
       // lables,
-      isSold
+      isSold,
     });
     // Save the new section
     await newItem.save();
@@ -609,7 +623,11 @@ const getMenuData = async (req, res) => {
     const menuObjectId = new mongoose.Types.ObjectId(menuId);
 
     // Find all menus for the given venueId
-    const menu = await Menu.findOne({ venueId: venue._id, _id: menuObjectId });
+    const menu = await Menu.findOne({
+      venueId: venue._id,
+      _id: menuObjectId,
+      isActive: true,
+    });
     if (!menu) {
       return res
         .status(404)
@@ -634,18 +652,24 @@ const getMenuItemsWithSectionsForQr = async (req, res) => {
   try {
     const objectId = new mongoose.Types.ObjectId(menuId);
 
+    // Check if the menu is active
+    const menu = await Menu.findOne({ _id: objectId, isActive: true });
+    if (!menu) {
+      return res.status(404).json({ error: "Menu not found or inactive" });
+    }
+
     // Fetch MenuSections where parentId is null (Top-level sections)
     const sections = await MenuSection.find({
       menuId: objectId,
       parentId: null,
-      // isActive: true,
+      isActive: true,
     });
 
     // Fetch MenuItems where parentId is null (Top-level items)
     const items = await MenuItem.find({
       menuId: objectId,
       parentId: null,
-      // isActive: true,
+      isActive: true,
     });
 
     // Fetch sub-sections and items for each top-level section
@@ -654,7 +678,7 @@ const getMenuItemsWithSectionsForQr = async (req, res) => {
         const sectionItems = await MenuItem.find({
           menuId: objectId,
           parentId: section._id,
-          // isActive: true,
+          isActive: true,
         });
 
         const subSections = await fetchSubSectionsForQr(section._id, objectId); // Recursively get sub-sections
@@ -695,7 +719,7 @@ const fetchSubSectionsForQr = async (parentSectionId, menuId) => {
       const subItems = await MenuItem.find({
         menuId: menuId,
         parentId: subSection._id,
-        // isActive: true,
+        isActive: true,
       });
 
       // Recursively fetch sub-sections for this sub-section

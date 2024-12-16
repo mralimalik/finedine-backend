@@ -276,6 +276,8 @@ const deleteTables = async (req, res) => {
 //fetch specific table
 const getTable = async (req, res) => {
   try {
+    console.log("finding table");
+    
     const { venueId, tableId} = req.params;
 
     if (!venueId) {
@@ -284,8 +286,13 @@ const getTable = async (req, res) => {
     if (!tableId) {
       return res.status(400).json({ error: "tableId is required" });
     }  
-    const table = await AreaTable.findById(tableId);
 
+  // Fetch the table by ID and check if it's active
+  const table = await AreaTable.findOne({ _id: tableId, onlineTableReservation: true });
+
+  if (!table) {
+    return res.status(404).json({ error: "Table not found or inactive" });
+  }
 
     res.status(200).json({ data: table });
   } catch (e) {

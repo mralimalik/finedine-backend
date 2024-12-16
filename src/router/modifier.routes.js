@@ -15,6 +15,6 @@ modifierRouter.get("/:itemId", getItemModifiers);
 modifierRouter.post("/delete", authenticateToken, deleteModifier);
 
 modifierRouter.post("/:venueId", authenticateToken, createModifier);
-modifierRouter.get("/:venueId", authenticateToken, getModifiersByVenue);
+modifierRouter.get("/getmodifier/:venueId", authenticateToken, getModifiersByVenue);
 
 export default modifierRouter;

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const deliverySchema = new mongoose.Schema({
   orderEnabled: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   tipEnabled: {
     type: Boolean,
@@ -37,7 +37,7 @@ const deliverySchema = new mongoose.Schema({
 const pickUpSchema = new mongoose.Schema({
   orderEnabled: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   tipEnabled: {
     type: Boolean,
