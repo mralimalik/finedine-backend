@@ -9,7 +9,7 @@ import venueRouter from "./router/venue.routes.js";
 import tableRouter from "./router/table.routes.js";
 import modifierRouter from "./router/modifier.routes.js";
 import orderRouter from "./router/order.routes.js";
-
+import { User } from "./models/user.model.js";
 dotenv.config();
 
 const app = express();
@@ -37,5 +37,20 @@ app.listen(port, async () => {
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");
+});
+
+// Test API to Get All Users
+app.get("/test", async (req, res) => {
+  try {
+    const users = await User.find(); // Fetch all users
+  console.log(users);
+  
+    res.status(200).json(users);
+
+  } catch (error) {
+    console.log(error);
+    
+    res.status(500).json({ message: "Error fetching users", error: error.message });
+  }
 });
 
