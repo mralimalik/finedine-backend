@@ -39,7 +39,3 @@ connectDatabase()
   .catch((e) => {
     console.log(e);
   });
-// // Start server and connect to MongoDB
-// app.listen(port, async () => {
-//   await connectDatabase();
-// });
