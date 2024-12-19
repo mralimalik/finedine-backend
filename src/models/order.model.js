@@ -77,8 +77,12 @@ const orderSchema = new mongoose.Schema(
       },
       status: {
         type: String,
-        enum: ["WAITING", "INPROGRESS","PREPAIRING", "DELIVERY","COMPLETED", "CANCELLED",],
+        enum: ["WAITING", "INKITCHEN","DELIVERY","COMPLETED", "CANCELLED","REFUNDED"],
         default: "WAITING",
+      },
+      statusUpdateTime: {
+        type: Date, 
+        default: Date.now, 
       },
       orderId: {
         type: Number,
