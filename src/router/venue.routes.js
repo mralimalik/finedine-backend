@@ -16,7 +16,7 @@ const venueRouter = Router();
 venueRouter.get("/", authenticateToken, getAllVenuesByUser);
 venueRouter.get("/:venueId", authenticateToken, getVenueById);
 
-// menuRouter.patch("/update", authenticateToken, updateVenueById);
+venueRouter.put("/update/:venueId", authenticateToken, updateVenueById);
 venueRouter.post("/createVenue", authenticateToken, createVenue);
 venueRouter.post("/extraCharges/:venueId", authenticateToken, addExtraCharges);
 venueRouter.post("/delete/extraCharges", authenticateToken, deleteExtraCharges);

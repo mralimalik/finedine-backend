@@ -72,8 +72,8 @@ const menuItemSchema = new mongoose.Schema(
     },
     labels:[
       {
-        type:String,
-        default:''
+        type:[String],
+        default:[]
       }
     ],
     modifiers: [

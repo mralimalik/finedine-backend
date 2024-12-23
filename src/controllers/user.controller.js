@@ -48,9 +48,7 @@ const signInUser = async (req, res) => {
     // Fetch venue data where userId matches user's ID
     // const venues = await Venue.find({ userId: existingUser._id });
     const token = generateJwtToken(email, newUser._id);
-    return res
-      .status(200)
-      .json({ data: { user: newUser, venues: [] }, token });
+    return res.status(200).json({ data: { user: newUser, venues: [] }, token });
   } catch (error) {
     // Check for Mongoose validation errors
     if (error.name === "ValidationError") {
@@ -87,4 +85,51 @@ const getUserData = async (req, res) => {
   }
 };
 
-export { signInUser, getUserData };
+// Update user information (first name or last name)
+const updateUser = async (req, res) => {
+  try {
+    // Extract user ID from the JWT token
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
+
+    const { firstName, lastName } = req.body;
+
+    // Validate input data
+    if (!firstName && !lastName) {
+      return res
+        .status(400)
+        .json({
+          message: "At least one field (firstName or lastName) is required.",
+        });
+    }
+
+    // Update user fields
+    const updatedFields = {};
+    if (firstName) updatedFields.firstName = firstName;
+    if (lastName) updatedFields.lastName = lastName;
+
+    // Find the user by ID and update the specified fields
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updatedFields },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "User information updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating user information", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export { signInUser, getUserData,updateUser };

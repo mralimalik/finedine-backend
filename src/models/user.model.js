@@ -15,10 +15,15 @@ const phoneNumberSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
+    firstName: {
       type: String,
-      // required: true,
       trim: true,
+      default: '',
+    },
+    lastName: {
+      type: String,
+      trim: true,
+      default: '',
     },
     email: {
       type: String,

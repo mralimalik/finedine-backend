@@ -10,7 +10,11 @@ import {
   getMenuItemsWithSectionsForQr,
   addMenuSection,
   addMenuItem,
-  updateMenuSection
+  updateMenuSection,
+  deleteMenuSection,
+  deleteMenu,
+  deleteMenuItem,
+  updateMenuItem
 } from "../controllers/menu.controller.js";
 import { upload } from "../middleware/image_upload.js";
 
@@ -18,6 +22,7 @@ const menuRouter = Router();
 
 // to get all menus, menu items, menu sections
 menuRouter.get("/menuitems/:menuId", authenticateToken, getMenuItemsWithSections);
+// to get all menus
 menuRouter.get("/:venueId", authenticateToken, getAllMenues);
 
 // to update menu 
@@ -31,7 +36,19 @@ menuRouter.post("/sampleMenu/:venueId", authenticateToken, createMenuWithItemsSe
 menuRouter.post("/menusection/:menuId", authenticateToken,upload.single('itemImage'), addMenuSection);
 menuRouter.post("/menuitem/:menuId", authenticateToken,upload.single('itemImage'),addMenuItem);
 
+// to update menu section
 menuRouter.put("/menusection/:sectionId", authenticateToken,upload.single('itemImage'),updateMenuSection);
+menuRouter.put("/update/menuitem/:itemId", authenticateToken,upload.single('itemImage'),updateMenuItem);
+
+
+
+// to delete menu section
+menuRouter.delete("/delete/:menuId/section/:sectionId",authenticateToken,deleteMenuSection);
+// to delete menu item
+menuRouter.delete("/delete/:menuId/item/:itemId",authenticateToken,deleteMenuItem);
+// to delete menu
+menuRouter.delete("/delete/:menuId",authenticateToken,deleteMenu);
+
 
 
 

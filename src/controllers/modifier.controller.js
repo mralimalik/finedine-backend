@@ -30,6 +30,37 @@ const createModifier = async (req, res) => {
   }
 };
 
+// update the modifier
+const updateModifier = async (req, res) => {
+  try {
+    const { modifierId } = req.params; 
+    const { groupName, modifierPrices } = req.body;
+
+    if (!modifierId) {
+      return res.status(400).json({ message: "modifierId is required" });
+    }
+
+    // Find the modifier by ID
+    const modifier = await ModifierGroup.findById(modifierId);
+    if (!modifier) {
+      return res.status(404).json({ message: "Modifier not found" });
+    }
+
+    // Update fields if provided
+    if (groupName) modifier.groupName = groupName;
+    if (modifierPrices) modifier.modifierPrices = modifierPrices;
+
+    // Save the updated modifier
+    await modifier.save();
+
+    return res.status(200).json({ data: modifier });
+  } catch (error) {
+    console.error("Error updating modifier:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
 const getModifiersByVenue = async (req, res) => {
   try {
     const { venueId } = req.params;
@@ -69,7 +100,6 @@ const deleteModifier = async (req, res) => {
     const { modifierIds } = req.body;
 
     console.log(modifierIds);
-    
 
     // Check if modifierIds is provided and it's an array
     if (
@@ -98,9 +128,6 @@ const deleteModifier = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
-
-
 
 // // // specific item modifiers
 // const getItemModifiers = async (req, res) => {
@@ -147,7 +174,6 @@ const deleteModifier = async (req, res) => {
 //     return res.status(500).json({ message: "Server error", error });
 //   }
 // };
-
 
 const getItemModifiers = async (req, res) => {
   const { itemId } = req.params;
@@ -209,10 +235,54 @@ const getItemModifiers = async (req, res) => {
   }
 };
 
+// remove modifier prices
+const removeModifierPrices = async (req, res) => {
+  try {
+    const { modifierGroupId } = req.params; // ModifierGroup ID
+    const { modifierPriceIds } = req.body; // Array of ModifierPrice IDs to be removed
 
+    if (!modifierGroupId) {
+      return res.status(400).json({ message: "Modifier Group ID is required" });
+    }
 
-export { createModifier, getModifiersByVenue, deleteModifier,getItemModifiers };
+    if (!Array.isArray(modifierPriceIds) || modifierPriceIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "An array of Modifier Price IDs is required" });
+    }
 
+    // Find the ModifierGroup by ID
+    const modifierGroup = await ModifierGroup.findById(modifierGroupId);
+    if (!modifierGroup) {
+      return res.status(404).json({ message: "Modifier Group not found" });
+    }
+
+    // Filter out the modifierPrices with IDs in the modifierPriceIds array
+    modifierGroup.modifierPrices = modifierGroup.modifierPrices.filter(
+      (price) => !modifierPriceIds.includes(price._id.toString())
+    );
+
+    // Save the updated ModifierGroup
+    await modifierGroup.save();
+
+    return res.status(200).json({
+      message: "Modifier prices removed successfully",
+      data: modifierGroup.modifierPrices, // Returning the updated modifierPrices array
+    });
+  } catch (error) {
+    console.error("Error removing modifier prices:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export {
+  createModifier,
+  getModifiersByVenue,
+  deleteModifier,
+  getItemModifiers,
+  removeModifierPrices,
+  updateModifier
+};
 
 // [
 //   {
@@ -226,6 +296,6 @@ export { createModifier, getModifiersByVenue, deleteModifier,getItemModifiers };
 //     "modifierId or modifierGroupId":lkdf,
 //     "modifierPriceId or modifierItemId":asdfasdf,
 //     "quantity":
-    
+
 //   },
 // ]

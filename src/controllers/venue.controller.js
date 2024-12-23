@@ -69,7 +69,8 @@ const updateVenueById = async (req, res) => {
       return res.status(400).json({ message: "User ID is missing" });
     }
 
-    const { venueId, venueName, country } = req.body;
+    const { venueId } = req.params;
+    const { venueName, country } = req.body;
 
     if (!venueId) {
       return res.status(400).json({ message: "venueId is required" });
@@ -138,12 +139,14 @@ const getVenueById = async (req, res) => {
 const addExtraCharges = async (req, res) => {
   try {
     const { venueId } = req.params; // Extract venueId from the route parameters
-    const {charges} = req.body; // Array of charges (could be new, existing, or to be deleted)
-console.log(charges);
+    const { charges } = req.body; // Array of charges (could be new, existing, or to be deleted)
+    console.log(charges);
 
     // Validate venueId
     if (!venueId) {
-      return res.status(400).json({ message: "Venue _id (venueId) is required." });
+      return res
+        .status(400)
+        .json({ message: "Venue _id (venueId) is required." });
     }
 
     if (!mongoose.Types.ObjectId.isValid(venueId)) {
@@ -160,12 +163,13 @@ console.log(charges);
     // Validate each entry in the array
     const allowedChargesTypes = ["DISCOUNT", "SERVICE", "TAXES"];
     for (const charge of charges) {
-      const { name, amount, chargesType, amountType,  } = charge;
+      const { name, amount, chargesType, amountType } = charge;
 
       // Validation checks
       if (!name || !chargesType || amount === undefined) {
         return res.status(400).json({
-          message: "Each extra charge must include name, chargesType, and amount.",
+          message:
+            "Each extra charge must include name, chargesType, and amount.",
         });
       }
 
@@ -182,23 +186,20 @@ console.log(charges);
           message: `Invalid amountType. Allowed values are: PERCENT, NUMBER.`,
         });
       }
-
     }
 
     // Process each charge (either add, update, or handle deletions)
     const processedCharges = await Promise.all(
       charges.map(async (charge) => {
-        const { _id, chargesType, name, amount, amountType, isActive,  } = charge;
-
-     
+        const { _id, chargesType, name, amount, amountType, isActive } = charge;
 
         const chargeData = {
           venueId,
           chargesType,
           name,
           amount,
-          amountType: amountType || 'PERCENT',  // Defaulting to 'PERCENT' if not provided
-          isActive: isActive !== undefined ? isActive : false,  // Default to active if not provided
+          amountType: amountType || "PERCENT", // Defaulting to 'PERCENT' if not provided
+          isActive: isActive !== undefined ? isActive : false, // Default to active if not provided
         };
 
         if (_id) {
@@ -218,7 +219,7 @@ console.log(charges);
     );
 
     // Filter out any null entries (charges marked for deletion)
-    const validCharges = processedCharges.filter(charge => charge !== null);
+    const validCharges = processedCharges.filter((charge) => charge !== null);
 
     // Respond with success
     res.status(200).json({
@@ -237,7 +238,9 @@ const deleteExtraCharges = async (req, res) => {
 
     // Validate that ids is an array
     if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ message: "Request body must contain an array of _id's." });
+      return res
+        .status(400)
+        .json({ message: "Request body must contain an array of _id's." });
     }
 
     // Validate that each id is in a valid ObjectId format
@@ -252,7 +255,9 @@ const deleteExtraCharges = async (req, res) => {
 
     // Check if any charges were deleted
     if (result.deletedCount === 0) {
-      return res.status(404).json({ message: "No charges found with the provided _id(s)." });
+      return res
+        .status(404)
+        .json({ message: "No charges found with the provided _id(s)." });
     }
 
     // Respond with success
@@ -265,16 +270,15 @@ const deleteExtraCharges = async (req, res) => {
   }
 };
 
-
-
-
 const getExtraChargesByVenueId = async (req, res) => {
   try {
     const { venueId } = req.params; // Extract venueId from the route parameters
 
     // Validate venueId
     if (!venueId) {
-      return res.status(400).json({ message: "Venue _id (venueId) is required." });
+      return res
+        .status(400)
+        .json({ message: "Venue _id (venueId) is required." });
     }
 
     if (!mongoose.Types.ObjectId.isValid(venueId)) {
@@ -284,7 +288,6 @@ const getExtraChargesByVenueId = async (req, res) => {
     // Fetch extra charges for the given venueId
     const extraCharges = await ExtraCharge.find({ venueId });
 
-   
     // Respond with the found extra charges
     res.status(200).json({
       message: "Extra charges retrieved successfully.",
@@ -295,7 +298,6 @@ const getExtraChargesByVenueId = async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
-
 
 // const getGroupedExtraCharges = async (req, res) => {
 //   try {
@@ -357,11 +359,7 @@ const getExtraChargesByVenueId = async (req, res) => {
 //   }
 // };
 
-
-
-
 // get venue data for qr frontend
-
 
 const getVenueDataForQr = async (req, res) => {
   try {
@@ -382,21 +380,18 @@ const getVenueDataForQr = async (req, res) => {
     if (!menus) {
       return res.status(404).json({ message: "No menus found for this venue" });
     }
-    const venueCharges = await ExtraCharge.find({venueId:venue._id,isActive:true});
+    const venueCharges = await ExtraCharge.find({
+      venueId: venue._id,
+      isActive: true,
+    });
 
     // Return the venue data
-    res.status(200).json({ venue, menus: menus || [] ,venueCharges});
+    res.status(200).json({ venue, menus: menus || [], venueCharges });
   } catch (e) {
     console.error("Error fetching venue by ID", e);
     res.status(500).json({ message: "Something went wrong", e });
   }
 };
-
-
-
-
-
-
 
 export {
   createVenue,
@@ -406,5 +401,5 @@ export {
   getVenueDataForQr,
   addExtraCharges,
   getExtraChargesByVenueId,
-  deleteExtraCharges
+  deleteExtraCharges,
 };

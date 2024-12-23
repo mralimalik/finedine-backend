@@ -250,7 +250,7 @@ const createMenuWithItemsSections = async (req, res) => {
         userId: userId,
         venueId: venue._id,
         position: 1,
-        image: "",
+        image: "https://www.foodfusion.com/wp-content/uploads/2018/03/2-1.jpg",
       },
       {
         sectionName: "Salads",
@@ -261,7 +261,8 @@ const createMenuWithItemsSections = async (req, res) => {
         userId: userId,
         venueId: venue._id,
         position: 2,
-        image: "",
+        image:
+          "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8c2FsYWR8ZW58MHx8MHx8fDA%3D",
       },
       {
         sectionName: "Desserts",
@@ -272,7 +273,8 @@ const createMenuWithItemsSections = async (req, res) => {
         userId: userId,
         venueId: venue._id,
         position: 3,
-        image: "",
+        image:
+          "https://images.immediate.co.uk/production/volatile/sites/30/2017/11/Vegan-chocolate-tart-with-raspberries-05795f4.jpg?quality=90&resize=556,505",
       },
     ];
 
@@ -538,7 +540,7 @@ const addMenuItem = async (req, res) => {
       price,
       description,
       modifiers,
-      lables,
+      labels,
       isSold,
     } = req.body;
     const { menuId } = req.params;
@@ -546,6 +548,8 @@ const addMenuItem = async (req, res) => {
     const parsedPrice = typeof price === "string" ? JSON.parse(price) : price;
     const parsedModifiers =
       typeof price === "string" ? JSON.parse(modifiers) : modifiers;
+    const parsedLabels =
+      typeof labels === "string" ? JSON.parse(labels) : labels;
 
     const itemImage = req.file;
 
@@ -577,6 +581,8 @@ const addMenuItem = async (req, res) => {
       : null;
     const imageUrl = uploadedImage ? uploadedImage.url : null;
 
+    const validatedLabels = Array.isArray(parsedLabels) ? parsedLabels : [];
+
     const newItem = new MenuItem({
       venueId: venueId,
       itemName: itemName,
@@ -587,7 +593,7 @@ const addMenuItem = async (req, res) => {
       image: imageUrl,
       description,
       modifiers: parsedModifiers,
-      // lables,
+      labels: validatedLabels,
       isSold,
     });
     // Save the new section
@@ -596,6 +602,71 @@ const addMenuItem = async (req, res) => {
     return res.status(200).json({ data: newItem });
   } catch (error) {
     console.error("Error adding menu item:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// update menu item data
+const updateMenuItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    if (!itemId) {
+      return res.status(400).json({ message: "Item ID is required" });
+    }
+
+    const {
+      itemName,
+      parentId,
+      price,
+      description,
+      modifiers,
+      labels,
+      isSold,
+      isActive,
+    } = req.body;
+
+    const parsedPrice = typeof price === "string" ? JSON.parse(price) : price;
+    const parsedModifiers =
+      typeof modifiers === "string" ? JSON.parse(modifiers) : modifiers;
+    const parsedLabels =
+      typeof labels === "string" ? JSON.parse(labels) : labels;
+
+    const itemImage = req.file;
+
+    // Ensure `labels` is an array (default to empty array if undefined)
+    const validatedLabels = Array.isArray(parsedLabels) ? parsedLabels : [];
+
+    // Upload image to Cloudinary if present
+    let imageUrl = null;
+    if (itemImage) {
+      const uploadedImage = await uploadOnCloudinary(itemImage.path);
+      imageUrl = uploadedImage.url;
+    }
+
+    // Fetch the existing menu item
+    const existingItem = await MenuItem.findById(itemId);
+    if (!existingItem) {
+      return res.status(404).json({ message: "Menu item not found" });
+    }
+
+    // Update fields if they are provided
+    if (itemName) existingItem.itemName = itemName;
+    if (parentId !== undefined) existingItem.parentId = parentId;
+    if (parsedPrice) existingItem.price = parsedPrice;
+    if (description) existingItem.description = description;
+    if (parsedModifiers) existingItem.modifiers = parsedModifiers;
+    if (validatedLabels) existingItem.labels = validatedLabels;
+    if (isSold !== undefined) existingItem.isSold = isSold;
+    if (imageUrl) existingItem.image = imageUrl;
+    if (isActive) existingItem.isActive = isActive;
+
+    // Save updated item
+    await existingItem.save();
+
+    return res.status(200).json({ data: existingItem });
+  } catch (error) {
+    console.error("Error updating menu item:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -739,9 +810,124 @@ const fetchSubSectionsForQr = async (parentSectionId, menuId) => {
   return subSectionsWithItems;
 };
 
+// to delete menu section
+const deleteMenuSection = async (req, res) => {
+  const { sectionId, menuId } = req.params;
+
+  try {
+    if (!sectionId || !menuId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both sectionId and menuId must be provided",
+      });
+    }
+
+    // Find the section by `sectionId` and `menuId` and delete it
+    const deletedSection = await MenuSection.findOneAndDelete({
+      _id: sectionId,
+      menuId,
+    });
+
+    if (!deletedSection) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu section not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Menu section deleted successfully",
+      data: deletedSection, // Optional: return the deleted document
+    });
+  } catch (error) {
+    console.error("Error deleting menu section:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// to delete menu item
+const deleteMenuItem = async (req, res) => {
+  const { itemId, menuId } = req.params;
+
+  try {
+    if (!itemId || !menuId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both itemId and menuId must be provided",
+      });
+    }
+
+    // Find the section by `itemId` and `menuId` and delete it
+    const deletedItem = await MenuItem.findOneAndDelete({
+      _id: itemId,
+      menuId,
+    });
+
+    if (!deletedItem) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu Item not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Menu Item deleted successfully",
+      data: deletedItem, // Optional: return the deleted document
+    });
+  } catch (error) {
+    console.error("Error deleting menu Item:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// to delete a menu
+const deleteMenu = async (req, res) => {
+  const { menuId } = req.params;
+
+  try {
+    if (!menuId) {
+      return res.status(400).json({
+        success: false,
+        message: "menuId must be provided",
+      });
+    }
+
+    // Find the menu by `menuId` and delete it
+    const deletedMenu = await Menu.findByIdAndDelete(menuId);
+
+    if (!deletedMenu) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Menu deleted successfully",
+      data: deletedMenu,
+    });
+  } catch (error) {
+    console.error("Error deleting menu:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 export {
   getAllMenues,
   updateMenu,
+  deleteMenu,
   getMenuItemsWithSections,
   createMenuWitoutItems,
   createMenuWithItemsSections,
@@ -750,4 +936,7 @@ export {
   addMenuSection,
   addMenuItem,
   updateMenuSection,
+  updateMenuItem,
+  deleteMenuSection,
+  deleteMenuItem,
 };
