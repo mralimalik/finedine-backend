@@ -26,7 +26,7 @@ menuRouter.get("/menuitems/:menuId", authenticateToken, getMenuItemsWithSections
 menuRouter.get("/:venueId", authenticateToken, getAllMenues);
 
 // to update menu 
-menuRouter.patch("/:menuId", authenticateToken, updateMenu);
+menuRouter.put("/update/:menuId", authenticateToken, updateMenu);
 
 // to add menu without items or with items sections data
 menuRouter.post("/emptyMenu/:venueId", authenticateToken, createMenuWitoutItems);

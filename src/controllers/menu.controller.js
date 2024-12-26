@@ -4,6 +4,7 @@ import { MenuSection } from "../models/menu.section.js";
 import { MenuItem } from "../models/menu.item.js";
 import { Venue } from "../models/venue.model.js";
 import { uploadOnCloudinary } from "../cloudinaryconfig.js";
+import { log } from "console";
 // // to get all menues of particular venue
 // const getAllMenues = async (req, res) => {
 //   // Access venueId from URL params correctly
@@ -67,9 +68,8 @@ const getAllMenues = async (req, res) => {
 // to update sepecific menue
 const updateMenu = async (req, res) => {
   //get required data from body and menuId from params
-  const { menuName, isActive } = req.body;
+  const { menuName, isActive, dineInOrder, deliveryOrder } = req.body;
   const { menuId } = req.params;
-  console.log(isActive);
 
   if (!menuId) {
     return res.status(400).json({ message: "menuId is required" });
@@ -84,6 +84,14 @@ const updateMenu = async (req, res) => {
     const updateData = {};
     if (menuName !== undefined) updateData.menuName = menuName;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (dineInOrder !== undefined) {
+      updateData["orderSettings.dineIn.orderEnabled"] = dineInOrder;
+    }
+    if (deliveryOrder !== undefined) {
+      updateData["orderSettings.delivery.orderEnabled"] = deliveryOrder;
+    }
+
+    
 
     // find the menu id and replace with new data
     const updatedMenu = await Menu.findOneAndUpdate(

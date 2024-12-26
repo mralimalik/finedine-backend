@@ -24,6 +24,17 @@ const menuSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    orderSettings: {
+      delivery: {
+        orderEnabled: { type: Boolean, default: true },
+      },
+      dineIn: {
+        orderEnabled: { type: Boolean, default: true },
+      },
+      pickup: {
+        orderEnabled: { type: Boolean, default: true },
+      },
+    },
   },
   { timestamps: true }
 );

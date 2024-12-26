@@ -9,7 +9,9 @@ import venueRouter from "./src/router/venue.routes.js";
 import tableRouter from "./src/router/table.routes.js";
 import modifierRouter from "./src/router/modifier.routes.js";
 import orderRouter from "./src/router/order.routes.js";
-import { User } from "./src/models/user.model.js";
+import reportRouter from "./src/router/report.routes.js";
+import adminRouter from "./src/router/admin.routes.js";
+
 dotenv.config();
 
 const app = express();
@@ -19,13 +21,17 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({extended:true}))
 
-// endpoints
+// user endpoints
 app.use("/user", userRouter);
 app.use("/menu", menuRouter);
 app.use("/venue", venueRouter);
 app.use("/table", tableRouter);
 app.use("/modifier", modifierRouter);
 app.use("/order", orderRouter);
+app.use("/report", reportRouter);
+// admin endpoint
+app.use("/admin", adminRouter);
+
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");
 });

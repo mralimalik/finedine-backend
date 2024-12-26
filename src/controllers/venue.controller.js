@@ -3,6 +3,8 @@ import { Menu } from "../models/menu.model.js";
 import { OrderSetting } from "../models/order.setting.model.js";
 import { ExtraCharge } from "../models/extra.charges.model.js";
 import mongoose from "mongoose";
+import { uploadOnCloudinary } from "../cloudinaryconfig.js";
+
 const createRandomVenueId = () => {
   const characters =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -71,6 +73,7 @@ const updateVenueById = async (req, res) => {
 
     const { venueId } = req.params;
     const { venueName, country } = req.body;
+    const image = req.file;
 
     if (!venueId) {
       return res.status(400).json({ message: "venueId is required" });
@@ -84,6 +87,14 @@ const updateVenueById = async (req, res) => {
     const updateData = {};
     if (venueName) updateData.venueName = venueName;
     if (country) updateData.country = country;
+
+    // Upload image to Cloudinary if present
+    let imageUrl = null;
+    if (image) {
+      const uploadedImage = await uploadOnCloudinary(image.path);
+      imageUrl = uploadedImage.url;
+    }
+    if (imageUrl) updateData.image = imageUrl;
 
     const updatedVenue = await Venue.findOneAndUpdate(
       { venueId, userId },

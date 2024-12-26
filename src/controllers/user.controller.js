@@ -1,8 +1,8 @@
 import { User } from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import { Venue } from "../models/venue.model.js";
-
-const generateJwtToken = (email, id) => {
+import { uploadOnCloudinary } from "../cloudinaryconfig.js";
+export const generateJwtToken = (email, id) => {
   return jwt.sign(
     { email: email, _id: id },
     process.env.ACCESS_TOKEN_SECRET,
@@ -85,7 +85,7 @@ const getUserData = async (req, res) => {
   }
 };
 
-// Update user information (first name or last name)
+// Update user information (first name, last name, or business logo)
 const updateUser = async (req, res) => {
   try {
     // Extract user ID from the JWT token
@@ -96,20 +96,26 @@ const updateUser = async (req, res) => {
     }
 
     const { firstName, lastName } = req.body;
+    const businessLogo = req.file;
 
     // Validate input data
-    if (!firstName && !lastName) {
-      return res
-        .status(400)
-        .json({
-          message: "At least one field (firstName or lastName) is required.",
-        });
+    if (!firstName && !lastName && !businessLogo) {
+      return res.status(400).json({
+        message:
+          "At least one field (firstName, lastName, or businessLogo) is required.",
+      });
     }
 
     // Update user fields
     const updatedFields = {};
     if (firstName) updatedFields.firstName = firstName;
     if (lastName) updatedFields.lastName = lastName;
+
+    // Handle image upload if a new image is provided and it is a file
+    if (businessLogo && businessLogo.mimetype.startsWith("image/")) {
+      const imageUrl = await uploadOnCloudinary(businessLogo.path);
+      updatedFields.businessLogo = imageUrl.url;
+    }
 
     // Find the user by ID and update the specified fields
     const updatedUser = await User.findByIdAndUpdate(
@@ -132,4 +138,4 @@ const updateUser = async (req, res) => {
   }
 };
 
-export { signInUser, getUserData,updateUser };
+export { signInUser, getUserData, updateUser };

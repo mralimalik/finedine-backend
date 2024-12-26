@@ -94,6 +94,7 @@ const updateVenueOrderSettings = async (req, res) => {
 const createOrder = async (req, res) => {
   const { venueId } = req.params; // Get venueId from URL parameter
   const {
+    menuId,
     orderType,
     orderSummary,
     paymentMethod,
@@ -103,7 +104,6 @@ const createOrder = async (req, res) => {
   } = req.body;
 
   try {
-    console.log("tablename", tableName);
 
     // Validate that the orderType is either "DELIVERY" or "DINEIN"
     if (!["DELIVERY", "DINEIN"].includes(orderType)) {
@@ -125,15 +125,15 @@ const createOrder = async (req, res) => {
         });
       }
 
-      // Validate each modifier
-      item.modifiers?.forEach((modifier) => {
-        if (!modifier.modifierName || !modifier.modifierPrice) {
-          return res.status(400).json({
-            message:
-              "Each modifier must contain modifierName and modifierPrice",
-          });
-        }
-      });
+    //   // Validate each modifier
+    //   item.modifiers?.forEach((modifier) => {
+    //     if (!modifier.modifierName || !modifier.modifierPrice) {
+    //       return res.status(400).json({
+    //         message:
+    //           "Each modifier must contain modifierName and modifierPrice",
+    //       });
+    //     }
+    //   });
     }
 
     // Find the last order and increment its orderId
@@ -144,7 +144,8 @@ const createOrder = async (req, res) => {
 
     // Create the order document based on the order type
     const newOrder = new Order({
-      venueId: venueId, // venueId passed as URL parameter
+      menuId:menuId,
+      venueId: venueId, 
       orderType: orderType,
       orderId: orderId,
       orderSummary: orderSummary,
@@ -158,13 +159,13 @@ const createOrder = async (req, res) => {
     await newOrder.save();
 
     // Respond with the created order
-    res.status(200).json({
+  return  res.status(200).json({
       message: "Order created successfully",
       order: newOrder,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    return  res.status(500).json({ message: "Internal server error" });
   }
 };
 
