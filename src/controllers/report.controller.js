@@ -76,10 +76,11 @@ export const getVenueReport = async (req, res) => {
       return res.status(400).json({ message: "Invalid date format" });
     }
 
-    // Fetch orders and populate sectionName
+    // Fetch orders and populate sectionName, excluding CANCELLED orders
     const orders = await Order.find({
       venueId: new mongoose.Types.ObjectId(venueId),
       createdAt: { $gte: parsedStartDate, $lte: parsedEndDate },
+      status: { $ne: "CANCELLED" },
     }).populate({
       path: "orderSummary.sectionId",
       select: "sectionName",
