@@ -4,32 +4,33 @@ import { Order } from "../models/order.model.js";
 const parseDate = (dateString) =>
   new Date(dateString.split("-").reverse().join("-"));
 
-const calculateItemRevenue = (item, tax, serviceCharge, discount) => {
-  const itemModifiersTotal = item.modifiers.reduce(
-    (modSum, mod) => modSum + mod.modifierPrice * mod.quantity,
-    0
-  );
+// calculate revenue of individaul order
+const calculateOrderRevenue = (order) => {
+  const { tax, serviceCharge, discount } = order.appliedCharges;
 
-  console.log("Modifier total", itemModifiersTotal);
+  // Calculate the total of all items in the order
+  const itemsTotal = order.orderSummary.reduce((total, item) => {
+    // calculate the total of all modifiers for the item
+    const itemModifiersTotal = item.modifiers.reduce(
+      (modSum, mod) => modSum + mod.modifierPrice * mod.quantity,
+      0
+    );
 
-  // Calculate the item total before applying tax, service charge, and discount
-  const itemTotalBeforeTaxAndDiscount =
-    (item.itemPrice + itemModifiersTotal) * item.quantity;
-  console.log(
-    "Item total before tax and discount",
-    itemTotalBeforeTaxAndDiscount
-  );
+    const itemTotal = (item.itemPrice + itemModifiersTotal) * item.quantity;
+    return total + itemTotal;
+  }, 0);
 
-  // Subtract the discount from the item total
-  const itemTotalAfterDiscount = itemTotalBeforeTaxAndDiscount - discount;
-  console.log("Item total after discount", itemTotalAfterDiscount);
+  // Subtract the discount from the items total
+  const totalAfterDiscount = itemsTotal - discount;
+
   // Calculate the total revenue by adding service charge and tax
-  const totalRevenue = itemTotalAfterDiscount + serviceCharge + tax;
-  console.log("Total revenue", totalRevenue);
+  const totalRevenue = totalAfterDiscount + serviceCharge + tax;
+
   // Ensure that the revenue is not negative
   return totalRevenue < 0 ? 0 : totalRevenue;
 };
 
+// get the best day in which we got most orders
 const getBestDay = (orders) => {
   const ordersByDay = orders.reduce((acc, order) => {
     const day = new Date(order.createdAt).toISOString().split("T")[0];
@@ -41,26 +42,77 @@ const getBestDay = (orders) => {
   );
 };
 
-const getItemShares = (itemRevenue, totalRevenue) => {
+const calculateItemRevenue = (item, itemRevenue) => {
+  const itemKey = item.itemId || "others";
+  if (!itemRevenue[itemKey]) {
+    itemRevenue[itemKey] = {
+      itemName: item.itemName || "Others",
+      revenue: 0,
+    };
+  }
+  // calculate the revenue of the item and add in the itemRevenue object
+  itemRevenue[itemKey].revenue +=
+    (item.itemPrice +
+      item.modifiers.reduce(
+        (modSum, mod) => modSum + mod.modifierPrice * mod.quantity,
+        0
+      )) *
+    item.quantity;
+};
+
+const calculateSectionRevenue = (item, sectionRevenue) => {
+  const sectionKey = item.sectionId?._id || "others";
+  if (!sectionRevenue[sectionKey]) {
+    sectionRevenue[sectionKey] = {
+      sectionName: item.sectionId?.sectionName || "Others",
+      revenue: 0,
+    };
+  }
+  // calculate the revenue of the section and add in the sectionRevenue object
+  sectionRevenue[sectionKey].revenue +=
+    (item.itemPrice +
+      item.modifiers.reduce(
+        (modSum, mod) => modSum + mod.modifierPrice * mod.quantity,
+        0
+      )) *
+    item.quantity;
+};
+
+// calculate the total revenue of all items
+const getItemShares = (itemRevenue) => {
+  // first we calculate the total revenue of all items
+  const totalItemRevenue = Object.values(itemRevenue).reduce(
+    (sum, item) => sum + item.revenue,
+    0
+  );
+  // then return the revenue of each item and its share of the total revenue
   return Object.keys(itemRevenue).map((itemId) => {
     const item = itemRevenue[itemId];
-    const revenueShare = (item.revenue / totalRevenue) * 100;
+    const normalizedRevenueShare = (item.revenue / totalItemRevenue) * 100;
     return {
       itemName: item.itemName,
       revenue: item.revenue.toFixed(2),
-      revenueShare: revenueShare.toFixed(2),
+      revenueShare: normalizedRevenueShare.toFixed(2),
     };
   });
 };
 
-const getSectionShares = (sectionRevenue, totalRevenue) => {
+// calculate the total revenue of all sections
+const getSectionShares = (sectionRevenue) => {
+  // first we calculate the total revenue of all sections
+  const totalSectionRevenue = Object.values(sectionRevenue).reduce(
+    (sum, section) => sum + section.revenue,
+    0
+  );
+  // then return the revenue of each section and its share of the total section revenue
   return Object.keys(sectionRevenue).map((sectionId) => {
     const section = sectionRevenue[sectionId];
-    const revenueShare = (section.revenue / totalRevenue) * 100;
+    const normalizedRevenueShare =
+      (section.revenue / totalSectionRevenue) * 100;
     return {
       sectionName: section.sectionName,
       revenue: section.revenue.toFixed(2),
-      revenueShare: revenueShare.toFixed(2),
+      revenueShare: normalizedRevenueShare.toFixed(2),
     };
   });
 };
@@ -70,6 +122,7 @@ export const getVenueReport = async (req, res) => {
     const { venueId } = req.params;
     const { startDate, endDate } = req.query;
 
+    // Validate required parameters
     if (!venueId || !startDate || !endDate) {
       return res
         .status(400)
@@ -80,6 +133,7 @@ export const getVenueReport = async (req, res) => {
     const parsedStartDate = parseDate(startDate);
     const parsedEndDate = parseDate(endDate);
 
+    // Validate date formats
     if (isNaN(parsedStartDate) || isNaN(parsedEndDate)) {
       return res.status(400).json({ message: "Invalid date format" });
     }
@@ -94,6 +148,7 @@ export const getVenueReport = async (req, res) => {
       select: "sectionName",
     });
 
+    // Check if orders exist
     if (orders.length === 0) {
       return res
         .status(404)
@@ -107,47 +162,24 @@ export const getVenueReport = async (req, res) => {
 
     // Process orders revenue
     orders.forEach((order) => {
-      const { tax, serviceCharge, discount } = order.appliedCharges;
+      const orderTotal = calculateOrderRevenue(order);
+      totalRevenue += orderTotal;
+
       if (order.orderSummary && order.orderSummary.length > 0) {
         order.orderSummary.forEach((item) => {
-          // calculate the total revenue
-          const itemTotal = calculateItemRevenue(
-            item,
-            tax,
-            serviceCharge,
-            discount
-          );
-
-          totalRevenue += itemTotal;
-
-          // Group by itemId for share revenue
-          const itemKey = item.itemId || "others";
-          if (!itemRevenue[itemKey]) {
-            itemRevenue[itemKey] = {
-              itemName: item.itemName || "Others",
-              revenue: 0,
-            };
-          }
-          itemRevenue[itemKey].revenue += itemTotal;
-
-          // Group by sectionId for share revenue
-          const sectionKey = item.sectionId?._id || "others";
-          if (!sectionRevenue[sectionKey]) {
-            sectionRevenue[sectionKey] = {
-              sectionName: item.sectionId?.sectionName || "Others",
-              revenue: 0,
-            };
-          }
-          sectionRevenue[sectionKey].revenue += itemTotal;
+          // Calculate item revenue
+          calculateItemRevenue(item, itemRevenue);
+          // Calculate section revenue
+          calculateSectionRevenue(item, sectionRevenue);
         });
       }
     });
 
     // Get item shares
-    const itemShares = getItemShares(itemRevenue, totalRevenue);
+    const itemShares = getItemShares(itemRevenue);
 
     // Get section shares
-    const sectionShares = getSectionShares(sectionRevenue, totalRevenue);
+    const sectionShares = getSectionShares(sectionRevenue);
 
     // Calculate average order size
     const averageOrderSize = totalRevenue / orders.length;
@@ -155,6 +187,7 @@ export const getVenueReport = async (req, res) => {
     // Find the best day
     const bestDay = getBestDay(orders);
 
+    // Send response
     res.json({
       totalOrders: orders.length,
       revenue: totalRevenue.toFixed(2),
@@ -164,6 +197,7 @@ export const getVenueReport = async (req, res) => {
       sectionShares,
     });
   } catch (error) {
+    // Handle errors
     res.status(500).json({ message: error.message });
   }
 };
