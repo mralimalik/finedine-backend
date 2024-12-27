@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema(
     businessLogo:{
       type: String,
       default: '',
+    },
+    companyName:{
+      type: String,
+      default: '',
     }
   },
   { timestamps: true }

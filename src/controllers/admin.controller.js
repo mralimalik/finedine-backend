@@ -50,8 +50,8 @@ export const adminLogin = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { email, password, changeLogo } = req.body;
-   const  businessLogo = req.file;
+    const { email, password, changeLogo, companyName } = req.body;
+    const businessLogo = req.file;
 
     // Validate input data
     if (!email || !password) {
@@ -69,15 +69,21 @@ export const createUser = async (req, res) => {
       });
     }
 
-     // Upload image to Cloudinary if present
-     let imageUrl = null;
-     if (businessLogo) {
-       const uploadedImage = await uploadOnCloudinary(businessLogo.path);
-       imageUrl = uploadedImage.url;
-     }
+    // Upload image to Cloudinary if present
+    let imageUrl = null;
+    if (businessLogo) {
+      const uploadedImage = await uploadOnCloudinary(businessLogo.path);
+      imageUrl = uploadedImage.url;
+    }
 
     //if user doesn't exist then create new user and save
-    const newUser = new User({ email, password, changeLogo,businessLogo:imageUrl });
+    const newUser = new User({
+      email,
+      password,
+      changeLogo,
+      businessLogo: imageUrl,
+      companyName,
+    });
     await newUser.save();
 
     return res.status(200).json({ message: "New User Created", data: newUser });
@@ -132,6 +138,7 @@ export const getAdminData = async (req, res) => {
 export const updateUserBusinessImage = async (req, res) => {
   try {
     const { userId } = req.params;
+    const { companyName } = req.body;
     const businessLogo = req.file;
 
     // Validate input data
@@ -149,7 +156,7 @@ export const updateUserBusinessImage = async (req, res) => {
     // Update user with new business logo
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { businessLogo: imageUrl },
+      { businessLogo: imageUrl, companyName: companyName },
       { new: true }
     );
 
@@ -157,7 +164,12 @@ export const updateUserBusinessImage = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    return res.status(200).json({ message: "Business image updated successfully", data: updatedUser });
+    return res
+      .status(200)
+      .json({
+        message: "Business image updated successfully",
+        data: updatedUser,
+      });
   } catch (error) {
     // Check for Mongoose validation errors
     if (error.name === "ValidationError") {
@@ -187,7 +199,12 @@ export const updateSettings = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    return res.status(200).json({ message: "Settings updated successfully", data: updatedSettings });
+    return res
+      .status(200)
+      .json({
+        message: "Settings updated successfully",
+        data: updatedSettings,
+      });
   } catch (error) {
     console.log("Error updating settings", error);
     return res.status(500).json({ message: "Internal server error", error });

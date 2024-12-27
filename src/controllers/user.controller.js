@@ -95,14 +95,14 @@ const updateUser = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized access" });
     }
 
-    const { firstName, lastName } = req.body;
+    const { firstName, lastName,companyName } = req.body;
     const businessLogo = req.file;
 
     // Validate input data
-    if (!firstName && !lastName && !businessLogo) {
+    if (!firstName && !lastName && !businessLogo && !companyName) {
       return res.status(400).json({
         message:
-          "At least one field (firstName, lastName, or businessLogo) is required.",
+          "At least one field (firstName, lastName, or businessLogo,companyName) is required.",
       });
     }
 
@@ -110,6 +110,7 @@ const updateUser = async (req, res) => {
     const updatedFields = {};
     if (firstName) updatedFields.firstName = firstName;
     if (lastName) updatedFields.lastName = lastName;
+    if(companyName) updatedFields.companyName = companyName;
 
     // Handle image upload if a new image is provided and it is a file
     if (businessLogo && businessLogo.mimetype.startsWith("image/")) {
