@@ -14,9 +14,11 @@ const calculateItemRevenue = (item, tax, serviceCharge, discount) => {
   const itemTotalBeforeTaxAndDiscount =
     (item.itemPrice + itemModifiersTotal) * item.quantity;
 
-  // Calculate the total revenue, ensuring it doesn't go negative
-  const totalRevenue =
-    itemTotalBeforeTaxAndDiscount - discount + serviceCharge + tax;
+  // Subtract the discount from the item total
+  const itemTotalAfterDiscount = itemTotalBeforeTaxAndDiscount - discount;
+
+  // Calculate the total revenue by adding service charge and tax
+  const totalRevenue = itemTotalAfterDiscount + serviceCharge + tax;
 
   // Ensure that the revenue is not negative
   return totalRevenue < 0 ? 0 : totalRevenue;
