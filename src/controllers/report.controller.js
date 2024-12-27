@@ -10,16 +10,22 @@ const calculateItemRevenue = (item, tax, serviceCharge, discount) => {
     0
   );
 
+  console.log("Modifier total", itemModifiersTotal);
+
   // Calculate the item total before applying tax, service charge, and discount
   const itemTotalBeforeTaxAndDiscount =
     (item.itemPrice + itemModifiersTotal) * item.quantity;
+  console.log(
+    "Item total before tax and discount",
+    itemTotalBeforeTaxAndDiscount
+  );
 
   // Subtract the discount from the item total
   const itemTotalAfterDiscount = itemTotalBeforeTaxAndDiscount - discount;
-
+  console.log("Item total after discount", itemTotalAfterDiscount);
   // Calculate the total revenue by adding service charge and tax
   const totalRevenue = itemTotalAfterDiscount + serviceCharge + tax;
-
+  console.log("Total revenue", totalRevenue);
   // Ensure that the revenue is not negative
   return totalRevenue < 0 ? 0 : totalRevenue;
 };
@@ -105,7 +111,12 @@ export const getVenueReport = async (req, res) => {
       if (order.orderSummary && order.orderSummary.length > 0) {
         order.orderSummary.forEach((item) => {
           // calculate the total revenue
-          const itemTotal = calculateItemRevenue(item,tax,serviceCharge,discount);
+          const itemTotal = calculateItemRevenue(
+            item,
+            tax,
+            serviceCharge,
+            discount
+          );
 
           totalRevenue += itemTotal;
 
