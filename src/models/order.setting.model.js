@@ -14,8 +14,10 @@ const deliverySchema = new mongoose.Schema({
     default: 0,
   },
   paymentOptions: {
-    type: [String],
-    defualt: [],
+    type: {
+      cardPayment: { type: Boolean, default: true },
+      cashPayment: { type: Boolean, default: true },
+    },
   },
   deliveryFee: {
     type: Number,
@@ -52,8 +54,10 @@ const pickUpSchema = new mongoose.Schema({
     default:false
   },
   paymentOptions: {
-    type: [String],
-    default: [],
+    type: {
+      cardPayment: { type: Boolean, default: true },
+      cashPayment: { type: Boolean, default: true },
+    },
   },
 
   deliveryFee: {
@@ -92,9 +96,11 @@ const dineInSchema = new mongoose.Schema({
     default: 0,
   },
   paymentOptions: {
-    type: [String],
-    default: [],
-  },
+    type: {
+      cardPayment: { type: Boolean, default: true },
+      cashPayment: { type: Boolean, default: true },
+    },
+  }
 });
 
 const orderSettingSchema = new mongoose.Schema(

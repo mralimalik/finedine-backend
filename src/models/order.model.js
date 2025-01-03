@@ -80,6 +80,10 @@ const orderSummarySchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
+    paymentId:{
+      type:String,
+      default:'',
+    },
     menuId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Menu",

@@ -1,6 +1,11 @@
 import { OrderSetting } from "../models/order.setting.model.js";
 import mongoose from "mongoose";
 import { Order } from "../models/order.model.js";
+import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 // Fetch order settings by venue ID
 const getVenueOrderSettings = async (req, res) => {
   try {
@@ -90,6 +95,71 @@ const updateVenueOrderSettings = async (req, res) => {
   }
 };
 
+// Validate card details
+const validateCardDetails = async (cardDetails) => {
+  try {
+    const response = await axios.post("https://api.moyassar.com/v1/tokens", {
+      card: {
+        number: cardDetails.number,
+        exp_month: cardDetails.exp_month,
+        exp_year: cardDetails.exp_year,
+        cvc: cardDetails.cvc,
+      },
+    }, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.MOYASSAR_SECRET}`,
+      },
+    });
+
+    if (response.data.id) {
+      return { success: true, token: response.data.id };
+    } else {
+      return { success: false, error: response.data.error };
+    }
+  } catch (error) {
+    console.error("Error validating card details:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Handle card payment
+const processCardPaymentOrder = async ( totalCartValue, cardDetails) => {
+  
+  try {
+    // Validate card details and get a token
+    const validationResponse = await validateCardDetails(cardDetails);
+    if (!validationResponse.success) {
+      return { success: false, error: validationResponse.error };
+    }
+
+    // Process the payment using the token
+    const response = await axios.post("https://api.moyassar.com/v1/payments", {
+      amount: totalCartValue,
+      currency: "USD",
+      source: {
+        type: "card",
+        token: validationResponse.token,
+      },
+    }, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.MOYASSAR_SECRET}`,
+      },
+    });
+
+    // Check if the payment was successful
+    if (response.data.status === "succeeded") {
+      return { success: true, paymentId: response.data.id };
+    } else {
+      return { success: false, error: response.data.error };
+    }
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    return { success: false, error: error.message };
+  }
+};
+
 // create order on customer side
 const createOrder = async (req, res) => {
   const { venueId } = req.params; // Get venueId from URL parameter
@@ -101,9 +171,15 @@ const createOrder = async (req, res) => {
     customerInfo, // customer info for delivery orders
     tableName, // table info for dine-in orders
     appliedCharges,
+    cardDetails,
+    totalCartValue,
   } = req.body;
 
   try {
+    // Validate payment method
+    if (paymentMethod !== "CARD" && paymentMethod !== "CASH") {
+      return res.status(400).json({ message: "CASH or CARD Payment method is required." });
+    }
 
     // Validate that the orderType is either "DELIVERY" or "DINEIN"
     if (!["DELIVERY", "DINEIN"].includes(orderType)) {
@@ -117,6 +193,7 @@ const createOrder = async (req, res) => {
         .json({ message: "Order summary must be a non-empty array" });
     }
 
+    // Validate each item in the order summary
     for (let item of orderSummary) {
       if (!item.itemName || !item.itemPrice || !item.quantity) {
         return res.status(400).json({
@@ -125,15 +202,25 @@ const createOrder = async (req, res) => {
         });
       }
 
-    //   // Validate each modifier
-    //   item.modifiers?.forEach((modifier) => {
-    //     if (!modifier.modifierName || !modifier.modifierPrice) {
-    //       return res.status(400).json({
-    //         message:
-    //           "Each modifier must contain modifierName and modifierPrice",
-    //       });
-    //     }
-    //   });
+      //   // Validate each modifier
+      //   item.modifiers?.forEach((modifier) => {
+      //     if (!modifier.modifierName || !modifier.modifierPrice) {
+      //       return res.status(400).json({
+      //         message:
+      //           "Each modifier must contain modifierName and modifierPrice",
+      //       });
+      //     }
+      //   });
+    }
+
+    let paymentId;
+    if (paymentMethod === "CARD") {
+      // Process card payment if payment method is CARD
+      const paymentResponse = await processCardPaymentOrder(totalCartValue, cardDetails);
+      if (!paymentResponse.success) {
+        return res.status(400).json({ message: "Payment failed", error: paymentResponse.error });
+      }
+      paymentId = paymentResponse.paymentId;
     }
 
     // Find the last order and increment its orderId
@@ -144,12 +231,13 @@ const createOrder = async (req, res) => {
 
     // Create the order document based on the order type
     const newOrder = new Order({
-      menuId:menuId,
-      venueId: venueId, 
+      menuId: menuId,
+      venueId: venueId,
       orderType: orderType,
       orderId: orderId,
       orderSummary: orderSummary,
       paymentMethod: paymentMethod,
+      paymentId: paymentMethod === "CARD" ? paymentId : '',
       appliedCharges: appliedCharges,
       customerInfo: orderType === "DELIVERY" ? customerInfo : undefined, // Include delivery info only if orderType is DELIVERY
       tableName: orderType === "DINEIN" ? tableName : undefined, // Include dinein info only if orderType is DINEIN
@@ -159,13 +247,13 @@ const createOrder = async (req, res) => {
     await newOrder.save();
 
     // Respond with the created order
-  return  res.status(200).json({
+    return res.status(200).json({
       message: "Order created successfully",
       order: newOrder,
     });
   } catch (error) {
     console.error(error);
-    return  res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -528,6 +616,8 @@ const updateOrderSummaryItem = async (req, res) => {
   }
 };
 
+
+
 export {
   getVenueOrderSettings,
   updateVenueOrderSettings,
@@ -538,4 +628,5 @@ export {
   deleteOrder,
   updateOrderStatus,
   updateOrderSummaryItem,
+  processCardPaymentOrder,
 };
