@@ -17,8 +17,8 @@ dotenv.config();
 const app = express();
 const port = 3000;
 
-// app.use(cors({ origin: "*" }));
-app.use(cors()); // This allows all origins by default
+app.use(cors({ origin: "*" }));
+// app.use(cors()); // This allows all origins by default
 
 // app.use(cors({
 //   origin: ["https://finedine-dashboard.vercel.app","https://qr-menu-frontend-beryl.vercel.app","https://finedine-admin.vercel.app"], // Allow specific origin
@@ -27,7 +27,7 @@ app.use(cors()); // This allows all origins by default
 // }));
 
 app.use(express.json());
-app.use(express.urlencoded({extended:true}))
+app.use(express.urlencoded({ extended: true }));
 
 // user endpoints
 app.use("/user", userRouter);
