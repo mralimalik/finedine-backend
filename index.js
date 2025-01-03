@@ -18,12 +18,13 @@ const app = express();
 const port = 3000;
 
 // app.use(cors({ origin: "*" }));
+app.use(cors()); // This allows all origins by default
 
-app.use(cors({
-  origin: ["https://finedine-dashboard.vercel.app","https://qr-menu-frontend-beryl.vercel.app","https://finedine-admin.vercel.app"], // Allow specific origin
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"], // Allowed methods
-  credentials: true // If your request includes credentials
-}));
+// app.use(cors({
+//   origin: ["https://finedine-dashboard.vercel.app","https://qr-menu-frontend-beryl.vercel.app","https://finedine-admin.vercel.app"], // Allow specific origin
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"], // Allowed methods
+//   credentials: true // If your request includes credentials
+// }));
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true}))
