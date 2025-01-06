@@ -142,7 +142,7 @@ export const getVenueReport = async (req, res) => {
     const orders = await Order.find({
       venueId: new mongoose.Types.ObjectId(venueId),
       createdAt: { $gte: parsedStartDate, $lte: parsedEndDate },
-      status: { $ne: "CANCELLED" },
+      status: { $nin: ["CANCELLED", "REFUNDED"] }, // Exclude CANCELLED and REFUNDED orders
     }).populate({
       path: "orderSummary.sectionId",
       select: "sectionName",

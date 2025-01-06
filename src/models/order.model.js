@@ -80,9 +80,13 @@ const orderSummarySchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    paymentId:{
-      type:String,
-      default:'',
+    paymentStatus: {
+      type: String,
+      default: "inprocess",
+    },
+    paymentId: {
+      type: String,
+      default: "",
     },
     menuId: {
       type: mongoose.Schema.Types.ObjectId,

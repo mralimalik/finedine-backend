@@ -2,9 +2,8 @@ import { OrderSetting } from "../models/order.setting.model.js";
 import mongoose from "mongoose";
 import { Order } from "../models/order.model.js";
 import axios from "axios";
-import dotenv from "dotenv";
+import { getPaymentStatus, refundPayment } from "../helper/moyasarpayment.js";
 
-dotenv.config();
 
 // Fetch order settings by venue ID
 const getVenueOrderSettings = async (req, res) => {
@@ -95,71 +94,108 @@ const updateVenueOrderSettings = async (req, res) => {
   }
 };
 
-// Validate card details
-const validateCardDetails = async (cardDetails) => {
-  try {
-    const response = await axios.post("https://api.moyassar.com/v1/tokens", {
-      card: {
-        number: cardDetails.number,
-        exp_month: cardDetails.exp_month,
-        exp_year: cardDetails.exp_year,
-        cvc: cardDetails.cvc,
-      },
-    }, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.MOYASSAR_SECRET}`,
-      },
-    });
+// // Validate card details
+// const validateCardDetails = async (cardDetails) => {
+//   try {
+//     const response = await axios.post("https://api.moyassar.com/v1/tokens", {
+//       card: {
+//         number: cardDetails.number,
+//         exp_month: cardDetails.exp_month,
+//         exp_year: cardDetails.exp_year,
+//         cvc: cardDetails.cvc,
+//       },
+//     }, {
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${process.env.MOYASSAR_SECRET}`,
+//       },
+//     });
 
-    if (response.data.id) {
-      return { success: true, token: response.data.id };
-    } else {
-      return { success: false, error: response.data.error };
-    }
-  } catch (error) {
-    console.error("Error validating card details:", error);
-    return { success: false, error: error.message };
-  }
-};
+//     if (response.data.id) {
+//       return { success: true, token: response.data.id };
+//     } else {
+//       return { success: false, error: response.data.error };
+//     }
+//   } catch (error) {
+//     console.error("Error validating card details:", error);
+//     return { success: false, error: error.message };
+//   }
+// };
 
 // Handle card payment
-const processCardPaymentOrder = async ( totalCartValue, cardDetails) => {
-  
-  try {
-    // Validate card details and get a token
-    const validationResponse = await validateCardDetails(cardDetails);
-    if (!validationResponse.success) {
-      return { success: false, error: validationResponse.error };
-    }
+// const processCardPaymentOrder = async (totalCartValue, cardDetails) => {
+//   try {
+//     // // Validate card details and get a token
+//     // const validationResponse = await validateCardDetails(cardDetails);
+//     // if (!validationResponse.success) {
+//     //   return { success: false, error: validationResponse.error };
+//     // }
+//     const convertedAmount = Math.round(totalCartValue * 100);
 
-    // Process the payment using the token
-    const response = await axios.post("https://api.moyassar.com/v1/payments", {
-      amount: totalCartValue,
-      currency: "USD",
-      source: {
-        type: "card",
-        token: validationResponse.token,
-      },
-    }, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.MOYASSAR_SECRET}`,
-      },
-    });
+//     const apiKey = `${process.env.MOYASSAR_SECRET}:`; // Append a colon for proper encoding
 
-    // Check if the payment was successful
-    if (response.data.status === "succeeded") {
-      return { success: true, paymentId: response.data.id };
-    } else {
-      return { success: false, error: response.data.error };
-    }
-  } catch (error) {
-    console.error("Error processing payment:", error);
-    return { success: false, error: error.message };
-  }
-};
+//     const username = apiKey;
+//     const password = "";
 
+//     const credentials = `${username}:${password}`;
+//     const encodedCredentials = btoa(credentials);
+
+//     // const encodedKey = Buffer.from(apiKey).toString("base64");
+//     // Process the payment using the token
+//     const response = await axios.post(
+//       "https://api.moyasar.com/v1/payments",
+//       {
+//         amount: convertedAmount,
+//         currency: "USD",
+//         callback_url: "https://sevun.ai",
+//         description: "Payment for order #",
+
+//         source: {
+//           type: "card",
+//           name: cardDetails.name,
+//           number: cardDetails.number.replace(/\s+/g, ""),
+//           month: cardDetails.exp_month,
+//           year: cardDetails.exp_year,
+//           cvc: cardDetails.cvc,
+//         },
+//       },
+//       {
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Basic ${encodedCredentials}`,
+//         },
+//       }
+//     );
+
+//     // Check if the payment was successful
+//     if (response.status === 201) {
+//       console.log("Payment Success");
+
+//       return { success: true, paymentId: response.data.id };
+//     } else {
+//       console.log("Payment", response);
+
+//       return { success: false, error: response.data.error };
+//     }
+//   } catch (error) {
+//     if (error.response) {
+//       console.error("API Response Error:", error.response.data);
+//     } else {
+//       console.error("Request Error:", error.message);
+//     }
+//     return { success: false, error: error.message };
+//   }
+// };
+
+// const moyasarApiKey = () => {
+//   const apiKey = `${process.env.MOYASSAR_SECRET}`;
+
+//   const username = apiKey;
+//   const password = "";
+
+//   const credentials = `${username}:${password}`;
+//   return btoa(credentials);
+// };
 // create order on customer side
 const createOrder = async (req, res) => {
   const { venueId } = req.params; // Get venueId from URL parameter
@@ -171,14 +207,17 @@ const createOrder = async (req, res) => {
     customerInfo, // customer info for delivery orders
     tableName, // table info for dine-in orders
     appliedCharges,
-    cardDetails,
-    totalCartValue,
+    // cardDetails,
+    // totalCartValue,
+    paymentId,
   } = req.body;
 
   try {
     // Validate payment method
     if (paymentMethod !== "CARD" && paymentMethod !== "CASH") {
-      return res.status(400).json({ message: "CASH or CARD Payment method is required." });
+      return res
+        .status(400)
+        .json({ message: "CASH or CARD Payment method is required." });
     }
 
     // Validate that the orderType is either "DELIVERY" or "DINEIN"
@@ -213,14 +252,22 @@ const createOrder = async (req, res) => {
       //   });
     }
 
-    let paymentId;
+    // let paymentId;
     if (paymentMethod === "CARD") {
-      // Process card payment if payment method is CARD
-      const paymentResponse = await processCardPaymentOrder(totalCartValue, cardDetails);
-      if (!paymentResponse.success) {
-        return res.status(400).json({ message: "Payment failed", error: paymentResponse.error });
+      // // Process card payment if payment method is CARD
+      // const paymentResponse = await processCardPaymentOrder(
+      //   totalCartValue,
+      //   cardDetails
+      // );
+      // if (!paymentResponse.success) {
+      //   return res
+      //     .status(400)
+      //     .json({ message: "Payment failed", error: paymentResponse.error });
+      // }
+      // paymentId = paymentResponse.paymentId;
+      if (!paymentId) {
+        return res.status(400).json({ message: "Payment Id is required" });
       }
-      paymentId = paymentResponse.paymentId;
     }
 
     // Find the last order and increment its orderId
@@ -237,7 +284,7 @@ const createOrder = async (req, res) => {
       orderId: orderId,
       orderSummary: orderSummary,
       paymentMethod: paymentMethod,
-      paymentId: paymentMethod === "CARD" ? paymentId : '',
+      paymentId: paymentMethod === "CARD" ? paymentId : "",
       appliedCharges: appliedCharges,
       customerInfo: orderType === "DELIVERY" ? customerInfo : undefined, // Include delivery info only if orderType is DELIVERY
       tableName: orderType === "DINEIN" ? tableName : undefined, // Include dinein info only if orderType is DINEIN
@@ -254,6 +301,35 @@ const createOrder = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+//  endpoint to update payment status
+const updatePaymentStatus = async (req, res) => {
+  const { status } = req.body;
+  const { paymentId } = req.params;
+  // Validate incoming data
+  if (!paymentId || !status) {
+    return res.status(400).send("paymentId  and status are required");
+  }
+
+  try {
+    // Use findOneAndUpdate to update the payment status and return the updated document
+    const result = await Order.findOneAndUpdate(
+      { paymentId: paymentId },
+      { $set: { paymentStatus: status } },
+      { new: true } // This will return the updated document
+    );
+
+    // If no order was matched, return a 404 error
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: "Order not found" });
+    }
+
+    res
+      .status(200)
+      .send({ message: "Order status updated successfully", data: result });
+  } catch (error) {
+    res.status(500).send("Error updating order status: " + error.message);
   }
 };
 
@@ -389,6 +465,63 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+// API endpoint to handle refund request
+const refundOrderPayment = async (req, res) => {
+  const { paymentId } = req.params;
+
+  if (!paymentId) {
+    return res.status(400).json({ message: "Payment ID is required" });
+  }
+
+  try {
+    const order = await Order.findOne({ paymentId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    // Step 2: Process the refund via Moyasar
+    const refundResponse = await refundPayment(paymentId);
+    // Step 3: If refund is successful, update the order status to 'REFUNDED'
+    if (refundResponse.status === "refunded") {
+      order.status = "REFUNDED";
+      await order.save(); // Save the updated order
+
+      // Step 4: Return a successful response with refund details
+      res.status(200).json({
+        message: "Refund successful and order status updated",
+        refundDetails: refundResponse,
+      });
+    } else {
+      res.status(400).json({
+        message:
+          "Refund failed. The payment provider did not return a refunded status.",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: "Refund failed",
+      error: error.message,
+    });
+  }
+};
+
+// // Function to fetch payment status from Moyasar API
+// const getPaymentStatus = async (paymentId) => {
+//   try {
+//     const response = await axios.get(
+//       `https://api.moyasar.com/v1/payments/${paymentId}`,
+//       {
+//         headers: {
+//           Authorization: `Basic ${moyasarApiKey()}`,
+//         },
+//       }
+//     );
+//     return response.data.status;
+//   } catch (error) {
+//     console.error("Error fetching payment status:", error);
+//     return "Failed";
+//   }
+// };
+
 // get all venue orders for dashboard which are live
 const getLiveOrders = async (req, res) => {
   try {
@@ -425,7 +558,7 @@ const getLiveOrders = async (req, res) => {
     // Build the filter object for status
     const filter = {
       venueId,
-      status: { $nin: ["COMPLETED", "CANCELLED"] }, // Always exclude "COMPLETED" and "CANCELLED"
+      status: { $nin: ["COMPLETED", "CANCELLED","REFUNDED"] }, // Always exclude "COMPLETED" and "CANCELLED"
     };
 
     // If statusFilter is provided, add it to the filter
@@ -442,13 +575,26 @@ const getLiveOrders = async (req, res) => {
     // Fetch total count of live orders (without pagination)
     const totalCount = await Order.countDocuments({
       venueId,
-      status: { $nin: ["COMPLETED", "CANCELLED"] },
+      status: { $nin: ["COMPLETED", "CANCELLED","REFUNDED"] },
     });
+    // Map through the live orders and fetch payment status for each order
+    const liveOrdersWithPaymentStatus = await Promise.all(
+      liveOrders.map(async (order) => {
+        if (order.paymentId && order.paymentMethod === "CARD") {
+          const paymentStatus = await getPaymentStatus(order.paymentId);
+          return {
+            ...order.toObject(),
+            paymentStatus, // Add paymentStatus to the order
+          };
+        }
+        return order; // If no paymentId, return the order as is
+      })
+    );
 
     console.log("Ook");
 
     return res.status(200).json({
-      data: liveOrders || [],
+      data: liveOrdersWithPaymentStatus || [],
       totalData: totalCount, // Total count of live orders
       totalPages: Math.ceil(totalCount / limit), // Calculate total pages
       currentPage: page, // Current page
@@ -497,10 +643,10 @@ const getClosedOrders = async (req, res) => {
     // Build the filter object for status
     const filter = {
       venueId,
-      status: { $in: ["COMPLETED", "CANCELLED"] },
+      status: { $in: ["COMPLETED", "CANCELLED", "REFUNDED"] },
     };
 
-    // If statusFilter is provided, add it to the filter
+    // If statusFilter is provided, add it to the filter,
     if (statusFilter && statusFilter.length > 0) {
       filter.status = { $in: statusFilter }; // Find orders where the status is in the provided list
     }
@@ -514,13 +660,26 @@ const getClosedOrders = async (req, res) => {
     // Fetch total count of live orders (without pagination)
     const totalCount = await Order.countDocuments({
       venueId,
-      status: { $nin: ["COMPLETED", "CANCELLED"] },
+      status: { $nin: ["COMPLETED", "CANCELLED","REFUNDED"] },
     });
+    // Map through the live orders and fetch payment status for each order
+    const ClosedOrdersWithPaymentStatus = await Promise.all(
+      liveOrders.map(async (order) => {
+        if (order.paymentId && order.paymentMethod === "CARD") {
+          const paymentStatus = await getPaymentStatus(order.paymentId);
+          return {
+            ...order.toObject(),
+            paymentStatus, // Add paymentStatus to the order
+          };
+        }
+        return order; // If no paymentId, return the order as is
+      })
+    );
 
     console.log("Ook");
 
     return res.status(200).json({
-      data: liveOrders || [],
+      data: ClosedOrdersWithPaymentStatus || [],
       totalData: totalCount, // Total count of live orders
       totalPages: Math.ceil(totalCount / limit), // Calculate total pages
       currentPage: page, // Current page
@@ -616,8 +775,6 @@ const updateOrderSummaryItem = async (req, res) => {
   }
 };
 
-
-
 export {
   getVenueOrderSettings,
   updateVenueOrderSettings,
@@ -628,5 +785,7 @@ export {
   deleteOrder,
   updateOrderStatus,
   updateOrderSummaryItem,
-  processCardPaymentOrder,
+  // processCardPaymentOrder,
+  updatePaymentStatus,
+  refundOrderPayment,
 };
