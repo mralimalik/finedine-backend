@@ -29,12 +29,14 @@ export const getPaymentStatus = async (paymentId) => {
 };
 
 // Function to refund the payment
-export const refundPayment = async (paymentId) => {
+export const refundPayment = async (paymentId, amount) => {
   try {
+    const data = amount ? { amount } : {};
+
     // Sending a POST request to the Moyasar refund endpoint
     const response = await axios.post(
       `https://api.moyasar.com/v1/payments/${paymentId}/refund`,
-      {},
+      data,
       {
         headers: {
           Authorization: `Basic ${moyasarApiKey()}`,

@@ -1,34 +1,34 @@
 import mongoose from "mongoose";
 import { Order } from "../models/order.model.js";
-
+import { calculateOrderRevenue } from "../helper/order_helper.js";
 const parseDate = (dateString) =>
   new Date(dateString.split("-").reverse().join("-"));
 
-// calculate revenue of individaul order
-const calculateOrderRevenue = (order) => {
-  const { tax, serviceCharge, discount } = order.appliedCharges;
+// // calculate revenue of individaul order
+// const calculateOrderRevenue = (order) => {
+//   const { tax, serviceCharge, discount } = order.appliedCharges;
 
-  // Calculate the total of all items in the order
-  const itemsTotal = order.orderSummary.reduce((total, item) => {
-    // calculate the total of all modifiers for the item
-    const itemModifiersTotal = item.modifiers.reduce(
-      (modSum, mod) => modSum + mod.modifierPrice * mod.quantity,
-      0
-    );
+//   // Calculate the total of all items in the order
+//   const itemsTotal = order.orderSummary.reduce((total, item) => {
+//     // calculate the total of all modifiers for the item
+//     const itemModifiersTotal = item.modifiers.reduce(
+//       (modSum, mod) => modSum + mod.modifierPrice * mod.quantity,
+//       0
+//     );
 
-    const itemTotal = (item.itemPrice + itemModifiersTotal) * item.quantity;
-    return total + itemTotal;
-  }, 0);
+//     const itemTotal = (item.itemPrice + itemModifiersTotal) * item.quantity;
+//     return total + itemTotal;
+//   }, 0);
 
-  // Subtract the discount from the items total
-  const totalAfterDiscount = itemsTotal - discount;
+//   // Subtract the discount from the items total
+//   const totalAfterDiscount = itemsTotal - discount;
 
-  // Calculate the total revenue by adding service charge and tax
-  const totalRevenue = totalAfterDiscount + serviceCharge + tax;
+//   // Calculate the total revenue by adding service charge and tax
+//   const totalRevenue = totalAfterDiscount + serviceCharge + tax;
 
-  // Ensure that the revenue is not negative
-  return totalRevenue < 0 ? 0 : totalRevenue;
-};
+//   // Ensure that the revenue is not negative
+//   return totalRevenue < 0 ? 0 : totalRevenue;
+// };
 
 // get the best day in which we got most orders
 const getBestDay = (orders) => {

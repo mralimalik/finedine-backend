@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { Order } from "../models/order.model.js";
 import axios from "axios";
 import { getPaymentStatus, refundPayment } from "../helper/moyasarpayment.js";
-
+import { calculateOrderRevenue } from "../helper/order_helper.js";
 
 // Fetch order settings by venue ID
 const getVenueOrderSettings = async (req, res) => {
@@ -558,7 +558,7 @@ const getLiveOrders = async (req, res) => {
     // Build the filter object for status
     const filter = {
       venueId,
-      status: { $nin: ["COMPLETED", "CANCELLED","REFUNDED"] }, // Always exclude "COMPLETED" and "CANCELLED"
+      status: { $nin: ["COMPLETED", "CANCELLED", "REFUNDED"] }, // Always exclude "COMPLETED" and "CANCELLED"
     };
 
     // If statusFilter is provided, add it to the filter
@@ -575,7 +575,7 @@ const getLiveOrders = async (req, res) => {
     // Fetch total count of live orders (without pagination)
     const totalCount = await Order.countDocuments({
       venueId,
-      status: { $nin: ["COMPLETED", "CANCELLED","REFUNDED"] },
+      status: { $nin: ["COMPLETED", "CANCELLED", "REFUNDED"] },
     });
     // Map through the live orders and fetch payment status for each order
     const liveOrdersWithPaymentStatus = await Promise.all(
@@ -660,7 +660,7 @@ const getClosedOrders = async (req, res) => {
     // Fetch total count of live orders (without pagination)
     const totalCount = await Order.countDocuments({
       venueId,
-      status: { $nin: ["COMPLETED", "CANCELLED","REFUNDED"] },
+      status: { $nin: ["COMPLETED", "CANCELLED", "REFUNDED"] },
     });
     // Map through the live orders and fetch payment status for each order
     const ClosedOrdersWithPaymentStatus = await Promise.all(
@@ -748,10 +748,58 @@ const updateOrderSummaryItem = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    // if (order.paymentMethod === "CARD" && order.paymentStatus === "paid") {
+    //   const totalPrice = calculateOrderRevenue(order);
+    //   const totalItems = order.orderSummary.length;
+    //   const refundAmount = totalPrice / totalItems;
+    // }
+
     // Find the index of the item in the order summary by matching the _id
     const itemIndex = order.orderSummary.findIndex(
       (item) => item._id.toString() === itemId
     );
+
+    // // Extract the item to be refunded
+    // const itemToRefund = order.orderSummary[itemIndex];
+    // const itemBasePrice = parseFloat(itemToRefund.itemPrice);
+    // const itemQuantity = parseInt(itemToRefund.quantity);
+
+    // // Calculate total price of the item, including modifiers
+    // const modifiersPrice = itemToRefund.modifiers.reduce(
+    //   (total, modifier) =>
+    //     total +
+    //     parseFloat(modifier.modifierPrice) * parseInt(modifier.quantity),
+    //   0
+    // );
+    // const itemTotalPrice = (itemBasePrice + modifiersPrice) * itemQuantity;
+
+    // // Calculate the refund amount proportionally with applied charges
+    // const orderTotal = order.orderSummary.reduce((total, item) => {
+    //   const itemModifiersPrice = item.modifiers.reduce(
+    //     (modTotal, mod) =>
+    //       modTotal + parseFloat(mod.modifierPrice) * parseInt(mod.quantity),
+    //     0
+    //   );
+    //   return (
+    //     total +
+    //     (parseFloat(item.itemPrice) + itemModifiersPrice) *
+    //       parseInt(item.quantity)
+    //   );
+    // }, 0);
+
+    // const appliedCharges = order.appliedCharges;
+    // const proportionalTax =
+    //   (itemTotalPrice / orderTotal) * (appliedCharges.tax || 0);
+    // const proportionalServiceCharge =
+    //   (itemTotalPrice / orderTotal) * (appliedCharges.serviceCharge || 0);
+    // const proportionalDiscount =
+    //   (itemTotalPrice / orderTotal) * (appliedCharges.discount || 0);
+
+    // const refundAmount =
+    //   itemTotalPrice +
+    //   proportionalTax +
+    //   proportionalServiceCharge -
+    //   proportionalDiscount;
 
     if (itemIndex === -1) {
       return res
