@@ -24,52 +24,7 @@ export default async function handler(req, res) {
       return res.status(403).send("Verification failed.");
     }
   }
-
-  if (req.method === "POST") {
-    try {
-      // Log the entire request body for debugging
-      console.log("Received Webhook Event:", JSON.stringify(req.body, null, 2));
-
-      // Extract the necessary fields from the incoming payload
-      const messageEvent = req.body.entry[0]?.changes[0]?.value;
-
-      if (messageEvent?.messages?.length) {
-        const message = messageEvent.messages[0]; // First message in the array
-        const from = message.from; // Sender's WhatsApp ID
-        const text = message.text?.body?.toLowerCase(); // Text message content
-
-        if (text === "order") {
-          // Respond to "Order" command
-          await sendMessage(from, "Please provide your order number.");
-        } else if (!isNaN(text)) {
-          // If the message is a number, treat it as an order number
-          const order = await Order.findOne({ orderId: text });
-          if (order) {
-            const orderDetails = `Order Number: ${order.orderId}\nStatus: ${order.status}\nOrder Type: ${order.orderType}\nItems:\n${order.orderSummary.map(item => `${item.itemName}: ${item.quantity} pieces`).join('\n')}`;
-              await sendMessage(
-              from,`Here are your order details:\n${orderDetails}`
-            );
-          } else {
-            await sendMessage(
-              from,
-              "Sorry, we couldn't find your order. Please check your order number."
-            );
-          }
-        } else {
-          // Default response for unrecognized messages
-          await sendMessage(
-            from,
-            "Sorry, I didn't understand that. Please send 'Order' to check your order status."
-          );
-        }
-      }
-
-      res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("Error handling webhook event:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  }
+  await handleOrderMessage();
 }
 
 async function sendMessage(to, message) {
@@ -92,3 +47,113 @@ async function sendMessage(to, message) {
     console.error("Error sending message:", error);
   }
 }
+
+const handleOrderMessage = async () => {
+  if (req.method === "POST") {
+    try {
+      // Log the entire request body for debugging
+      console.log("Received Webhook Event:", JSON.stringify(req.body, null, 2));
+
+      // Extract the necessary fields from the incoming payload
+      const messageEvent = req.body.entry[0]?.changes[0]?.value;
+
+      if (messageEvent?.messages?.length) {
+        const message = messageEvent.messages[0]; // First message in the array
+        const from = message.from; // Sender's WhatsApp ID
+        const text = message.text?.body?.toLowerCase(); // Text message content
+
+        if (text === "order") {
+          // Respond to "Order" command
+          await sendMessage(from, "Please provide your order number.");
+        } else if (!isNaN(text)) {
+          // If the message is a number, treat it as an order number
+          const order = await Order.findOne({ orderId: text });
+          if (order) {
+            const orderDetails = `Order Number: ${order.orderId}\nStatus: ${
+              order.status
+            }\nOrder Type: ${order.orderType}\nItems:\n${order.orderSummary
+              .map((item) => `${item.itemName}`)
+              .join("\n")}`;
+            await sendMessage(
+              from,
+              `Here are your order details:\n${orderDetails}`
+            );
+          } else {
+            await sendMessage(
+              from,
+              "Sorry, we couldn't find your order. Please check your order number."
+            );
+          }
+        } else {
+          // Default response for unrecognized messages
+          await sendMessage(
+            from,
+            "Sorry, I didn't understand that. Please send 'Order' to check your order status."
+          );
+        }
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error handling webhook event:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+
+    }
+  }
+};
+
+const handleBotMessage = async () => {
+  if (req.method === "POST") {
+    try {
+      // Log the entire request body for debugging
+      console.log("Received Webhook Event:", JSON.stringify(req.body, null, 2));
+
+      // Extract the necessary fields from the incoming payload
+      const messageEvent = req.body.entry[0]?.changes[0]?.value;
+
+      if (messageEvent?.messages?.length) {
+        const message = messageEvent.messages[0]; // First message in the array
+        const from = message.from; // Sender's WhatsApp ID
+        const text = message.text?.body?.toLowerCase(); // Text message content
+        // Handle the message and send to bot API
+        const botResponse = await handleBotApi(text);
+        if (!botResponse) {
+          await sendMessage(
+            from,
+            "Something went wrong. Please try again later."
+          );
+        } else {
+          // Send the bot response back to the user
+          await sendMessage(from, botResponse);
+        }
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error handling webhook event:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+};
+
+const handleBotApi = async () => {
+  try {
+    const response = await axios.post(
+      `http://91.134.11.232:8000/chat?query=${encodeURIComponent(message)}`,
+      {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.data) {
+        return response.data;
+      } else {
+        return null; 
+      }
+  } catch (e) {
+    console.log("error sending bot message api", e);
+    return null;
+  }
+};
