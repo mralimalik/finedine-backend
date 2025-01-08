@@ -36,7 +36,7 @@ app.use("/report", reportRouter);
 // admin endpoint
 app.use("/admin", adminRouter);
 
-app.post("/webhook", handler);
+app.use("/webhook", handler);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");
