@@ -27,6 +27,7 @@ export default async function handler(req, res) {
   
 
   if (req.method === "POST") {
+    console.log(req.body);
     const message = req.body.entry[0].changes[0].value.messages[0];
     const from = message.from; // Customer's phone number
     const text = message.text.body.toLowerCase(); // Incoming message
