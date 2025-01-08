@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       return res.status(403).send("Verification failed.");
     }
   }
-  await handleOrderMessage();
+  await handleOrderMessage(req,res);
 }
 
 async function sendMessage(to, message) {
@@ -48,7 +48,7 @@ async function sendMessage(to, message) {
   }
 }
 
-const handleOrderMessage = async () => {
+const handleOrderMessage = async (req,res) => {
   if (req.method === "POST") {
     try {
       // Log the entire request body for debugging
@@ -102,7 +102,7 @@ const handleOrderMessage = async () => {
   }
 };
 
-const handleBotMessage = async () => {
+const handleBotMessage = async (req,res) => {
   if (req.method === "POST") {
     try {
       // Log the entire request body for debugging
