@@ -27,8 +27,11 @@ export default async function handler(req, res) {
   
 
   if (req.method === "POST") {
-    console.log(req.body);
-    const message = req.body.entry[0].changes[0].value.messages[0];
+   // Log the entire request body for debugging
+   console.log("Received Webhook Event:", JSON.stringify(req.body, null, 2));
+
+   // Extract the necessary fields from the incoming payload
+   const messageEvent = req.body.entry[0]?.changes[0]?.value;    const message = req.body.entry[0].changes[0].value.messages[0];
     const from = message.from; // Customer's phone number
     const text = message.text.body.toLowerCase(); // Incoming message
 
