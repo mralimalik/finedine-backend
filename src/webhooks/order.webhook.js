@@ -45,14 +45,9 @@ export default async function handler(req, res) {
           // If the message is a number, treat it as an order number
           const order = await Order.findOne({ orderId: text });
           if (order) {
-            const orderDetails = `
-                  Order Number: ${order.orderId}
-                  Status: ${order.status}
-                  Order Type: ${order.orderType}
-                `;
-            await sendMessage(
-              from,
-              `Here are your order details:\n${orderDetails}`
+            const orderDetails = `Order Number: ${order.orderId}\nStatus: ${order.status}\nOrder Type: ${order.orderType}\nItems:\n${order.orderSummary.map(item => `${item.itemName}: ${item.quantity} pieces`).join('\n')}`;
+              await sendMessage(
+              from,`Here are your order details:\n${orderDetails}`
             );
           } else {
             await sendMessage(
