@@ -71,6 +71,6 @@ async function sendMessage(to, message) {
       }
     );
   } catch (error) {
-    console.error("Error sending message:", error.response.data);
+    console.error("Error sending message:", error);
   }
 }
