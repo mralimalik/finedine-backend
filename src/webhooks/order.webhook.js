@@ -1,13 +1,32 @@
 import { Order } from "../models/order.model.js";
 
 // WhatsApp API configuration
-const WHATSAPP_API_URL = "https://graph.facebook.com/v17.0/526609553867688/messages";
-const ACCESS_TOKEN = "EAAP6Y7PdWxsBO1SteLtQBWfA7SdBMBg9B7LYql0pSnISCO7WuwHQVGWIjzBJu16cXZCDv5pcegjaGjgWVsMSlL5TzjdINiLv3qBthv8s42ewTuaaFMgxzF6eCOgP1pV4XpsMqlZCHIIi4UbyJJa2Y9ZB2AUXWWpJvo9Qr8TGLjEiWijHxsrbfdoE05lDCets3w4913L9lTuxsT8ZCEnEPRt36Ll7vqoUZAdVMB1Ocbw6ZA";
+const WHATSAPP_API_URL = "https://graph.facebook.com/v21.0/526609553867688/messages";
+const ACCESS_TOKEN = "EAAP6Y7PdWxsBOZCtRpheoLQySrUYXS554cZArF9GWp6HP6uHF3v0Ylh6jIteqrgmIX0K1MbRi7tAsGfbjII7gFsW9vN8C7MXhJ1ZAGkOFiZB31LVAD3ZBmO8wtGqDsvfq3e0TRCbddw48d6YoZAypqcEuUVWGgIb0LyrWzBppRSd3ZBdYZBWEgQcluX8FaXH9EpTZB5GcpiMyuSev4SLBjT681Stz31RsAaDP6XkzCMhZBsh8ZD";
 
 // Serverless function
 export default async function handler(req, res) {
+
+
+    const VERIFY_TOKEN = "secrettoken";
+
+    if (req.method === "GET") {
+      // Handle webhook verification
+      const mode = req.query["hub.mode"];
+      const token = req.query["hub.verify_token"];
+      const challenge = req.query["hub.challenge"];
+  
+      if (mode === "subscribe" && token === VERIFY_TOKEN) {
+        console.log("Webhook verified successfully.");
+        return res.status(200).send(challenge); // Respond with the challenge token
+      } else {
+        console.log("Verification failed.");
+        return res.status(403).send("Verification failed.");
+      }
+    }
+  
+
   if (req.method === "POST") {
-    await connectDB();
     const message = req.body.entry[0].changes[0].value.messages[0];
     const from = message.from; // Customer's phone number
     const text = message.text.body.toLowerCase(); // Incoming message
