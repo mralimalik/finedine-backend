@@ -12,19 +12,15 @@ import orderRouter from "./src/router/order.routes.js";
 import reportRouter from "./src/router/report.routes.js";
 import adminRouter from "./src/router/admin.routes.js";
 
+import handler from "./src/webhooks/order.webhook.js";
+
 dotenv.config();
 
 const app = express();
 const port = 3000;
 
 app.use(cors({ origin: "*" }));
-// app.use(cors()); // This allows all origins by default
 
-// app.use(cors({
-//   origin: ["https://finedine-dashboard.vercel.app","https://qr-menu-frontend-beryl.vercel.app","https://finedine-admin.vercel.app"], // Allow specific origin
-//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"], // Allowed methods
-//   credentials: true // If your request includes credentials
-// }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,6 +35,8 @@ app.use("/order", orderRouter);
 app.use("/report", reportRouter);
 // admin endpoint
 app.use("/admin", adminRouter);
+
+app.post("/webhook", handler);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");
